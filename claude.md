@@ -1,0 +1,220 @@
+# Claude Context - Exceptionless MCP Server
+
+This document provides essential context for Claude when working on the Exceptionless MCP server project.
+
+## Project Summary
+
+**Goal**: Build a production-ready MCP server for Exceptionless API integration with Claude Code.
+
+**Key Requirements**:
+- Single-shot implementation (no phases)
+- stdio transport only (Claude Code target)
+- 18 tools (8 Event + 10 Stack)
+- Token optimization (minimize LLM token usage)
+- API key authentication
+- npm distribution via `npx -y mcp-exceptionless`
+
+## Memory Bank References
+
+### Primary Planning Document
+**File**: `memory-bank/planning/mcp-exceptionless-build-plan.md`
+**Purpose**: Complete self-contained implementation guide - THE BUILD BIBLE
+**Contains**:
+- Complete project structure
+- All 18 tool implementations with full code
+- Token optimization strategies (80-85% reduction)
+- API client implementation
+- Error handling patterns
+- Testing strategy
+- Documentation requirements
+- 100+ item implementation checklist
+
+**Usage**: This is the single source of truth for implementation. Refer to this document for all implementation details.
+
+### API Documentation
+**File**: `memory-bank/docs/exceptionless-overview.md`
+**Purpose**: Comprehensive Exceptionless API reference
+**Contains**:
+- 88 API endpoints across 8 categories
+- 40 data schemas with full structure
+- Authentication methods
+- Filter syntax examples
+- Complete endpoint reference
+
+**Usage**: Reference when implementing API calls, understanding data structures, or debugging API interactions.
+
+### MCP Architecture
+**File**: `memory-bank/docs/mcp-overview.md`
+**Purpose**: MCP protocol and architecture understanding
+**Contains**:
+- MCP client-server model
+- Transport types (stdio, SSE, HTTP)
+- Tool, prompt, and resource primitives
+- Authentication patterns
+- Platform support matrix
+- Best practices
+
+**Usage**: Reference when implementing MCP server setup, tool registration, or troubleshooting MCP-specific issues.
+
+## Critical User Directives
+
+1. **No Phases or Timelines**: Build everything in one go, no phased approach
+2. **No Hosting**: GitHub-only deployment, users run via npx
+3. **Claude Code Primary**: stdio transport, desktop-only target
+4. **Token Optimization Priority**: Minimize token usage while providing full data access
+5. **Production Quality**: Comprehensive error handling, validation, logging
+
+## Token Optimization Principles
+
+All implementations MUST follow these guidelines:
+
+```typescript
+// ✅ GOOD: Summary mode default
+mode: z.enum(['full', 'summary']).optional().default('summary')
+
+// ✅ GOOD: Reduced pagination
+limit: z.number().min(1).max(100).optional().default(5)
+
+// ✅ GOOD: Minimal response
+return {
+  content: [{
+    type: 'text',
+    text: JSON.stringify(result) // Raw data only
+  }]
+};
+
+// ❌ BAD: Verbose response
+return {
+  content: [{
+    type: 'text',
+    text: `I found ${results.length} events:\n\n${JSON.stringify(results)}\n\nHere are your events...`
+  }]
+};
+```
+
+## Implementation Workflow
+
+When implementing, follow this order:
+
+1. **Setup** → Project structure, dependencies, configuration
+2. **Core** → API client, error handling, retry logic
+3. **Event Tools** → All 8 event tools
+4. **Stack Tools** → All 10 stack tools
+5. **Server** → MCP server setup, tool registration
+6. **Testing** → Unit tests, integration tests
+7. **Documentation** → README, tool docs, examples
+8. **Publishing** → Build, CI/CD, npm publish
+
+## Key Files to Create
+
+### Source Code (`src/`)
+- `index.ts` - Entry point with stdio server
+- `server.ts` - MCP server creation and tool registration
+- `config/index.ts` - Configuration loader
+- `api/client.ts` - Axios HTTP client wrapper
+- `api/errors.ts` - Error formatting
+- `api/retry.ts` - Retry logic with exponential backoff
+- `tools/events/*.ts` - 8 event tool implementations
+- `tools/stacks/*.ts` - 10 stack tool implementations
+
+### Configuration
+- `package.json` - npm package config with bin entry
+- `tsconfig.json` - TypeScript configuration
+- `.env.example` - Environment variable template
+
+### Testing
+- `vitest.config.ts` - Test configuration
+- `tests/unit/*.test.ts` - Unit tests
+- `tests/integration/*.test.ts` - Integration tests
+- `tests/helpers/mock-api.ts` - API mocking utilities
+
+### Documentation
+- `docs/TOOLS.md` - Complete tool reference
+- `docs/FILTERS.md` - Filter syntax guide
+- `docs/TROUBLESHOOTING.md` - Common issues
+- `docs/EXAMPLES.md` - Usage examples
+
+## Quick Reference
+
+### Dependencies
+```json
+{
+  "@modelcontextprotocol/sdk": "^1.0.0",
+  "axios": "^1.6.0",
+  "zod": "^3.22.0",
+  "dotenv": "^16.3.0",
+  "pino": "^8.16.0"
+}
+```
+
+### Environment Variables
+```bash
+EXCEPTIONLESS_API_KEY=your-api-key       # Required
+EXCEPTIONLESS_API_URL=https://api.exceptionless.io  # Optional
+EXCEPTIONLESS_TIMEOUT=30000               # Optional
+EXCEPTIONLESS_DEBUG=false                 # Optional
+```
+
+### API Base URL
+```
+https://api.exceptionless.io/api/v2
+```
+
+## Common Patterns
+
+### Tool Registration
+```typescript
+export function registerToolName(server: McpServer, client: ExceptionlessClient) {
+  server.registerTool(
+    'tool-name',
+    {
+      title: 'Tool Title',
+      description: 'Tool description with examples',
+      inputSchema: z.object({ /* params */ }),
+      outputSchema: z.any()
+    },
+    async (params) => {
+      try {
+        const result = await client.get('/endpoint', params);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }]
+        };
+      } catch (error: any) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify(error) }],
+          isError: true
+        };
+      }
+    }
+  );
+}
+```
+
+### Error Handling
+```typescript
+export interface McpError {
+  code: string;
+  message: string;
+  suggestion?: string;
+  details?: any;
+}
+```
+
+## Questions to Ask
+
+When uncertain, refer to:
+1. **Implementation details** → Build plan (`mcp-exceptionless-build-plan.md`)
+2. **API specifics** → API overview (`exceptionless-overview.md`)
+3. **MCP patterns** → MCP overview (`mcp-overview.md`)
+
+## Current Status
+
+- ✅ Planning complete
+- ✅ Documentation complete
+- ⏳ Implementation pending
+- ⏳ Testing pending
+- ⏳ Publishing pending
+
+---
+
+**Remember**: The build plan is self-contained and includes every implementation detail. Use it as the primary reference for all coding tasks.
