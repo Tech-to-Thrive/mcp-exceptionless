@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.exceptionless.io)",
+      "WebFetch(domain:exceptionless.com)",
+      "mcp__chrome__chrome_navigate",
+      "mcp__chrome__chrome_get_web_content",
+      "mcp__chrome__chrome_screenshot",
+      "Read(//c/Users/DanielKnoodle/Downloads/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
