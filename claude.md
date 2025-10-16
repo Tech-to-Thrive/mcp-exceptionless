@@ -9,10 +9,11 @@ This document provides essential context for Claude when working on the Exceptio
 **Key Requirements**:
 - Single-shot implementation (no phases)
 - stdio transport only (Claude Code target)
-- 18 tools (8 Event + 10 Stack)
+- 9 read-only tools (6 Event + 3 Stack)
 - Token optimization (minimize LLM token usage)
 - API key authentication
 - npm distribution via `npx -y mcp-exceptionless`
+- READ-ONLY: No write/mutation operations
 
 ## Memory Bank References
 
@@ -21,7 +22,7 @@ This document provides essential context for Claude when working on the Exceptio
 **Purpose**: Complete self-contained implementation guide - THE BUILD BIBLE
 **Contains**:
 - Complete project structure
-- All 18 tool implementations with full code
+- All 9 read-only tool implementations with full code
 - Token optimization strategies (80-85% reduction)
 - API client implementation
 - Error handling patterns
@@ -29,7 +30,7 @@ This document provides essential context for Claude when working on the Exceptio
 - Documentation requirements
 - 100+ item implementation checklist
 
-**Usage**: This is the single source of truth for implementation. Refer to this document for all implementation details.
+**Usage**: This is the single source of truth for implementation. Refer to this document for all implementation details. This MCP is READ-ONLY - no write/mutation operations.
 
 ### API Documentation
 **File**: `memory-bank/docs/exceptionless-overview.md`
@@ -63,6 +64,7 @@ This document provides essential context for Claude when working on the Exceptio
 3. **Claude Code Primary**: stdio transport, desktop-only target
 4. **Token Optimization Priority**: Minimize token usage while providing full data access
 5. **Production Quality**: Comprehensive error handling, validation, logging
+6. **READ-ONLY ONLY**: No write/mutation operations - only query/read tools
 
 ## Token Optimization Principles
 
@@ -98,8 +100,8 @@ When implementing, follow this order:
 
 1. **Setup** → Project structure, dependencies, configuration
 2. **Core** → API client, error handling, retry logic
-3. **Event Tools** → All 8 event tools
-4. **Stack Tools** → All 10 stack tools
+3. **Event Tools** → All 6 read-only event tools
+4. **Stack Tools** → All 3 read-only stack tools
 5. **Server** → MCP server setup, tool registration
 6. **Testing** → Unit tests, integration tests
 7. **Documentation** → README, tool docs, examples
@@ -111,11 +113,11 @@ When implementing, follow this order:
 - `index.ts` - Entry point with stdio server
 - `server.ts` - MCP server creation and tool registration
 - `config/index.ts` - Configuration loader
-- `api/client.ts` - Axios HTTP client wrapper
+- `api/client.ts` - Axios HTTP client wrapper (GET only for read-only)
 - `api/errors.ts` - Error formatting
 - `api/retry.ts` - Retry logic with exponential backoff
-- `tools/events/*.ts` - 8 event tool implementations
-- `tools/stacks/*.ts` - 10 stack tool implementations
+- `tools/events/*.ts` - 6 read-only event tool implementations
+- `tools/stacks/*.ts` - 3 read-only stack tool implementations
 
 ### Configuration
 - `package.json` - npm package config with bin entry
@@ -129,10 +131,10 @@ When implementing, follow this order:
 - `tests/helpers/mock-api.ts` - API mocking utilities
 
 ### Documentation
-- `docs/TOOLS.md` - Complete tool reference
+- `docs/TOOLS.md` - Complete tool reference (9 read-only tools)
 - `docs/FILTERS.md` - Filter syntax guide
 - `docs/TROUBLESHOOTING.md` - Common issues
-- `docs/EXAMPLES.md` - Usage examples
+- `docs/EXAMPLES.md` - Usage examples (read-only queries)
 
 ## Quick Reference
 
@@ -207,14 +209,30 @@ When uncertain, refer to:
 2. **API specifics** → API overview (`exceptionless-overview.md`)
 3. **MCP patterns** → MCP overview (`mcp-overview.md`)
 
+## Tool List (9 Read-Only Tools)
+
+### Event Tools (6)
+1. `get-events` - Query events with filtering
+2. `get-event` - Get single event by ID
+3. `get-event-by-reference` - Get event by reference ID
+4. `count-events` - Count events with aggregations
+5. `get-sessions` - List user sessions
+6. `get-session-events` - Get events in a session
+
+### Stack Tools (3)
+1. `get-stacks` - List and search error stacks
+2. `get-stack` - Get single stack by ID
+3. `get-stack-events` - Get events for a stack
+
 ## Current Status
 
 - ✅ Planning complete
 - ✅ Documentation complete
+- ✅ Read-only tool design (no write operations)
 - ⏳ Implementation pending
 - ⏳ Testing pending
 - ⏳ Publishing pending
 
 ---
 
-**Remember**: The build plan is self-contained and includes every implementation detail. Use it as the primary reference for all coding tasks.
+**Remember**: The build plan is self-contained and includes every implementation detail. Use it as the primary reference for all coding tasks. This is a READ-ONLY MCP - no data modification allowed.

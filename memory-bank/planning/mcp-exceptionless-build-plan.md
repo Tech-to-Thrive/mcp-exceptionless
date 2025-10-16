@@ -16,8 +16,9 @@
 - ✅ API key authentication (user provides in Claude Code settings)
 - ✅ TypeScript for type safety
 - ✅ Production quality (error handling, validation, logging)
-- ✅ 18 tools (8 Event + 10 Stack)
+- ✅ 9 read-only tools (6 Event + 3 Stack)
 - ✅ All tools must work with Exceptionless API v2
+- ✅ READ-ONLY: No write/mutation operations
 
 ### Not Required
 - ❌ No remote hosting (SSE/HTTP transports)
@@ -27,15 +28,17 @@
 - ❌ No organization/project management tools
 - ❌ No webhook tools
 - ❌ No user management tools
+- ❌ No write operations (submit, delete, mark, change, add, remove)
 
 ### Success Criteria
 - User can install with one command: `npx -y mcp-exceptionless`
 - User configures API key in Claude Code settings
-- All 18 tools work reliably
+- All 9 read-only tools work reliably
 - Error messages are clear and actionable
 - Documentation is comprehensive
 - Code is production-quality
 - **Minimal token usage** - responses are concise yet complete
+- **Read-only operations** - safe querying with no data modification
 
 ---
 
@@ -68,9 +71,10 @@ All tools MUST minimize token usage while providing complete information:
 - Don't fetch data that won't be used
 
 **5. Tool Consolidation**
-- 18 tools is minimal - each serves distinct purpose
-- Don't create redundant tools
-- Each tool should be single-purpose and efficient
+- 9 read-only tools - each serves distinct purpose
+- No redundant tools
+- Each tool is single-purpose and efficient
+- No write operations keeps the surface area minimal and safe
 
 **6. Avoid Extra API Calls**
 - Never make multiple API calls to "enrich" data
@@ -164,25 +168,16 @@ mcp-exceptionless/
 │   ├── tools/
 │   │   ├── index.ts                  # Export all tools
 │   │   ├── events/
-│   │   │   ├── submit-event.ts       # POST event submission
 │   │   │   ├── get-events.ts         # GET events with filtering
 │   │   │   ├── get-event.ts          # GET single event by ID
 │   │   │   ├── get-event-by-reference.ts  # GET by reference_id
 │   │   │   ├── count-events.ts       # GET event counts
-│   │   │   ├── delete-events.ts      # DELETE events bulk
 │   │   │   ├── get-sessions.ts       # GET sessions list
 │   │   │   └── get-session-events.ts # GET events in session
 │   │   └── stacks/
 │   │       ├── get-stacks.ts         # GET stacks with filtering
 │   │       ├── get-stack.ts          # GET single stack by ID
-│   │       ├── get-stack-events.ts   # GET events for stack
-│   │       ├── mark-stack-fixed.ts   # POST mark as fixed
-│   │       ├── mark-stack-critical.ts # POST mark as critical
-│   │       ├── mark-stack-snoozed.ts # POST snooze until date
-│   │       ├── change-stack-status.ts # POST general status change
-│   │       ├── add-stack-link.ts     # POST add external link
-│   │       ├── remove-stack-link.ts  # POST remove link
-│   │       └── delete-stacks.ts      # DELETE stacks bulk
+│   │       └── get-stack-events.ts   # GET events for stack
 │   ├── validation/
 │   │   ├── schemas.ts                # All zod schemas for tools
 │   │   └── index.ts                  # Export validation functions
@@ -725,113 +720,7 @@ export function registerToolName(server: McpServer, client: ExceptionlessClient)
 
 ### Event Tools
 
-#### 1. submit-event (src/tools/events/submit-event.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const SubmitEventSchema = z.object({
-  event_data: z.union([
-    z.string().min(1, 'event_data cannot be empty'),
-    z.record(z.any())
-  ]).describe('Event data as JSON string or object'),
-  type: z.enum(['error', 'log', 'usage', 'custom']).optional().describe('Event type'),
-  user_agent: z.string().optional().describe('User agent string')
-});
-
-export function registerSubmitEvent(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'submit-event',
-    {
-      title: 'Submit Event',
-      description: `Submit an error, log, or usage event to Exceptionless.
-
-Supports:
-- JSON objects (single event)
-- Plain text (converted to log event)
-- Multi-line text (splits into multiple log events)
-
-Event Types:
-- error: Exception/error tracking
-- log: Log messages
-- usage: Feature usage tracking
-- custom: Custom event types
-
-Examples:
-{
-  "event_data": {
-    "type": "error",
-    "@simple_error": {
-      "message": "Null reference exception",
-      "type": "System.NullReferenceException",
-      "stack_trace": "at MyApp.Startup..."
-    }
-  }
-}
-
-{
-  "event_data": {
-    "type": "log",
-    "message": "User login successful",
-    "@user": {
-      "identity": "user123",
-      "name": "John Doe"
-    }
-  }
-}`,
-      inputSchema: SubmitEventSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        const { event_data, type, user_agent } = params;
-
-        // Prepare request body
-        let body: any;
-        if (typeof event_data === 'string') {
-          // Plain text
-          body = event_data;
-        } else {
-          // JSON object
-          body = event_data;
-          if (type && !body.type) {
-            body.type = type;
-          }
-        }
-
-        // Headers
-        const headers: Record<string, string> = {};
-        if (user_agent) {
-          headers['User-Agent'] = user_agent;
-        }
-
-        // Submit event
-        const result = await client.post(ENDPOINTS.EVENTS, body);
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Event submitted successfully.\n\nResponse: ${JSON.stringify(result, null, 2)}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to submit event.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 2. get-events (src/tools/events/get-events.ts)
+#### 1. get-events (src/tools/events/get-events.ts)
 
 ```typescript
 import { McpServer } from '@modelcontextprotocol/sdk';
@@ -905,7 +794,7 @@ Mode:
 }
 ```
 
-#### 3. get-event (src/tools/events/get-event.ts)
+#### 2. get-event (src/tools/events/get-event.ts)
 
 ```typescript
 import { McpServer } from '@modelcontextprotocol/sdk';
@@ -950,7 +839,7 @@ export function registerGetEvent(server: McpServer, client: ExceptionlessClient)
 }
 ```
 
-#### 4. get-event-by-reference (src/tools/events/get-event-by-reference.ts)
+#### 3. get-event-by-reference (src/tools/events/get-event-by-reference.ts)
 
 ```typescript
 import { McpServer } from '@modelcontextprotocol/sdk';
@@ -995,7 +884,7 @@ export function registerGetEventByReference(server: McpServer, client: Exception
 }
 ```
 
-#### 5. count-events (src/tools/events/count-events.ts)
+#### 4. count-events (src/tools/events/count-events.ts)
 
 ```typescript
 import { McpServer } from '@modelcontextprotocol/sdk';
@@ -1065,57 +954,7 @@ Returns:
 }
 ```
 
-#### 6. delete-events (src/tools/events/delete-events.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const DeleteEventsSchema = z.object({
-  ids: z.string()
-    .min(1, 'At least one ID required')
-    .regex(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/, 'Invalid ID format. Use comma-separated IDs (e.g., "id1,id2,id3")')
-    .describe('Comma-delimited event IDs')
-});
-
-export function registerDeleteEvents(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'delete-events',
-    {
-      title: 'Delete Events',
-      description: `Permanently delete events. Use with caution - this is irreversible.
-
-Example: "id1,id2,id3"`,
-      inputSchema: DeleteEventsSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        await client.delete(`/events/${params.ids}`);
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully deleted event(s): ${params.ids}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to delete events.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 7. get-sessions (src/tools/events/get-sessions.ts)
+#### 5. get-sessions (src/tools/events/get-sessions.ts)
 
 ```typescript
 import { McpServer } from '@modelcontextprotocol/sdk';
@@ -1168,7 +1007,7 @@ export function registerGetSessions(server: McpServer, client: ExceptionlessClie
 }
 ```
 
-#### 8. get-session-events (src/tools/events/get-session-events.ts)
+#### 6. get-session-events (src/tools/events/get-session-events.ts)
 
 ```typescript
 import { McpServer } from '@modelcontextprotocol/sdk';
@@ -1382,376 +1221,6 @@ export function registerGetStackEvents(server: McpServer, client: ExceptionlessC
 }
 ```
 
-#### 4. mark-stack-fixed (src/tools/stacks/mark-stack-fixed.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const MarkStackFixedSchema = z.object({
-  ids: z.string()
-    .min(1, 'At least one ID required')
-    .regex(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/, 'Invalid ID format')
-    .describe('Comma-delimited stack IDs'),
-  version: z.string().optional().describe('Version where fixed (e.g., "2.1.5")')
-});
-
-export function registerMarkStackFixed(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'mark-stack-fixed',
-    {
-      title: 'Mark Stack as Fixed',
-      description: `Mark error stack(s) as fixed. If the error occurs again, it will be marked as "regressed".
-
-Example: { "ids": "stack1,stack2", "version": "2.1.5" }`,
-      inputSchema: MarkStackFixedSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        const queryParams: any = {};
-        if (params.version) {
-          queryParams.version = params.version;
-        }
-
-        await client.post(ENDPOINTS.STACK_MARK_FIXED(params.ids), null, queryParams);
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully marked stack(s) as fixed: ${params.ids}${params.version ? ` (version: ${params.version})` : ''}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to mark stack as fixed.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 5. mark-stack-critical (src/tools/stacks/mark-stack-critical.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const MarkStackCriticalSchema = z.object({
-  ids: z.string()
-    .min(1, 'At least one ID required')
-    .regex(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/, 'Invalid ID format')
-    .describe('Comma-delimited stack IDs'),
-  critical: z.boolean().optional().default(true).describe('True to mark critical, false to unmark')
-});
-
-export function registerMarkStackCritical(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'mark-stack-critical',
-    {
-      title: 'Mark Stack as Critical',
-      description: 'Flag error stacks as critical (high priority) or remove critical flag.',
-      inputSchema: MarkStackCriticalSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        if (params.critical) {
-          await client.post(ENDPOINTS.STACK_MARK_CRITICAL(params.ids));
-        } else {
-          await client.delete(ENDPOINTS.STACK_MARK_CRITICAL(params.ids));
-        }
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully ${params.critical ? 'marked' : 'unmarked'} stack(s) as critical: ${params.ids}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to mark stack as critical.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 6. mark-stack-snoozed (src/tools/stacks/mark-stack-snoozed.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const MarkStackSnoozedSchema = z.object({
-  ids: z.string()
-    .min(1, 'At least one ID required')
-    .regex(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/, 'Invalid ID format')
-    .describe('Comma-delimited stack IDs'),
-  snooze_until_utc: z.string()
-    .min(1, 'Snooze date is required')
-    .describe('ISO datetime when to resume (e.g., "2025-10-20T00:00:00Z")')
-});
-
-export function registerMarkStackSnoozed(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'mark-stack-snoozed',
-    {
-      title: 'Mark Stack as Snoozed',
-      description: `Temporarily snooze error stacks until a specified date/time.
-
-Example: { "ids": "stack1", "snooze_until_utc": "2025-10-20T00:00:00Z" }`,
-      inputSchema: MarkStackSnoozedSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        await client.post(
-          ENDPOINTS.STACK_MARK_SNOOZED(params.ids),
-          null,
-          { snoozeUntilUtc: params.snooze_until_utc }
-        );
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully snoozed stack(s) until ${params.snooze_until_utc}: ${params.ids}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to snooze stack.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 7. change-stack-status (src/tools/stacks/change-stack-status.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const ChangeStackStatusSchema = z.object({
-  ids: z.string()
-    .min(1, 'At least one ID required')
-    .regex(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/, 'Invalid ID format')
-    .describe('Comma-delimited stack IDs'),
-  status: z.enum(['open', 'fixed', 'regressed', 'snoozed', 'ignored', 'discarded'])
-    .describe('New status for the stack(s)')
-});
-
-export function registerChangeStackStatus(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'change-stack-status',
-    {
-      title: 'Change Stack Status',
-      description: `Change the status of error stack(s).
-
-Status Values:
-- open: Active, unresolved error
-- fixed: Resolved error
-- regressed: Fixed error that recurred
-- snoozed: Temporarily hidden
-- ignored: Permanently hidden
-- discarded: Filtered/excluded`,
-      inputSchema: ChangeStackStatusSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        await client.post(
-          ENDPOINTS.STACK_CHANGE_STATUS(params.ids),
-          null,
-          { status: params.status }
-        );
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully changed status to "${params.status}" for stack(s): ${params.ids}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to change stack status.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 8. add-stack-link (src/tools/stacks/add-stack-link.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const AddStackLinkSchema = z.object({
-  id: z.string().min(1, 'Stack ID is required').describe('Stack ID'),
-  link: z.string().url('Link must be valid URL').describe('URL to external resource (JIRA, GitHub, etc.)')
-});
-
-export function registerAddStackLink(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'add-stack-link',
-    {
-      title: 'Add Stack Link',
-      description: `Add reference link to external system (JIRA ticket, GitHub issue, documentation).
-
-Example: { "id": "stack123", "link": "https://github.com/myorg/myapp/issues/456" }`,
-      inputSchema: AddStackLinkSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        await client.post(ENDPOINTS.STACK_ADD_LINK(params.id), null, { link: params.link });
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully added link to stack ${params.id}: ${params.link}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to add link to stack.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 9. remove-stack-link (src/tools/stacks/remove-stack-link.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const RemoveStackLinkSchema = z.object({
-  id: z.string().min(1, 'Stack ID is required').describe('Stack ID'),
-  link: z.string().url('Link must be valid URL').describe('URL to remove')
-});
-
-export function registerRemoveStackLink(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'remove-stack-link',
-    {
-      title: 'Remove Stack Link',
-      description: 'Remove a previously added reference link.',
-      inputSchema: RemoveStackLinkSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        await client.post(ENDPOINTS.STACK_REMOVE_LINK(params.id), null, { link: params.link });
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully removed link from stack ${params.id}: ${params.link}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to remove link from stack.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
-#### 10. delete-stacks (src/tools/stacks/delete-stacks.ts)
-
-```typescript
-import { McpServer } from '@modelcontextprotocol/sdk';
-import { z } from 'zod';
-import { ExceptionlessClient } from '../../api/client';
-import { ENDPOINTS } from '../../api/endpoints';
-
-const DeleteStacksSchema = z.object({
-  ids: z.string()
-    .min(1, 'At least one ID required')
-    .regex(/^[a-zA-Z0-9]+(,[a-zA-Z0-9]+)*$/, 'Invalid ID format')
-    .describe('Comma-delimited stack IDs')
-});
-
-export function registerDeleteStacks(server: McpServer, client: ExceptionlessClient) {
-  server.registerTool(
-    'delete-stacks',
-    {
-      title: 'Delete Stacks',
-      description: 'Permanently delete error stack(s). Use with caution - this removes the stack and all associated events.',
-      inputSchema: DeleteStacksSchema,
-      outputSchema: z.any()
-    },
-    async (params) => {
-      try {
-        await client.delete(ENDPOINTS.STACK_DELETE(params.ids));
-
-        return {
-          content: [{
-            type: 'text',
-            text: `Successfully deleted stack(s): ${params.ids}`
-          }]
-        };
-      } catch (error: any) {
-        return {
-          content: [{
-            type: 'text',
-            text: `Failed to delete stacks.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
-          isError: true
-        };
-      }
-    }
-  );
-}
-```
-
 ---
 
 ## Server Setup
@@ -1764,25 +1233,16 @@ import { ExceptionlessClient } from './api/client';
 import { Config } from './config';
 
 // Import all tool registrations
-import { registerSubmitEvent } from './tools/events/submit-event';
 import { registerGetEvents } from './tools/events/get-events';
 import { registerGetEvent } from './tools/events/get-event';
 import { registerGetEventByReference } from './tools/events/get-event-by-reference';
 import { registerCountEvents } from './tools/events/count-events';
-import { registerDeleteEvents } from './tools/events/delete-events';
 import { registerGetSessions } from './tools/events/get-sessions';
 import { registerGetSessionEvents } from './tools/events/get-session-events';
 
 import { registerGetStacks } from './tools/stacks/get-stacks';
 import { registerGetStack } from './tools/stacks/get-stack';
 import { registerGetStackEvents } from './tools/stacks/get-stack-events';
-import { registerMarkStackFixed } from './tools/stacks/mark-stack-fixed';
-import { registerMarkStackCritical } from './tools/stacks/mark-stack-critical';
-import { registerMarkStackSnoozed } from './tools/stacks/mark-stack-snoozed';
-import { registerChangeStackStatus } from './tools/stacks/change-stack-status';
-import { registerAddStackLink } from './tools/stacks/add-stack-link';
-import { registerRemoveStackLink } from './tools/stacks/remove-stack-link';
-import { registerDeleteStacks } from './tools/stacks/delete-stacks';
 
 export function createServer(config: Config): McpServer {
   const server = new McpServer({
@@ -1793,12 +1253,10 @@ export function createServer(config: Config): McpServer {
   const client = new ExceptionlessClient(config);
 
   // Register all event tools
-  registerSubmitEvent(server, client);
   registerGetEvents(server, client);
   registerGetEvent(server, client);
   registerGetEventByReference(server, client);
   registerCountEvents(server, client);
-  registerDeleteEvents(server, client);
   registerGetSessions(server, client);
   registerGetSessionEvents(server, client);
 
@@ -1806,13 +1264,6 @@ export function createServer(config: Config): McpServer {
   registerGetStacks(server, client);
   registerGetStack(server, client);
   registerGetStackEvents(server, client);
-  registerMarkStackFixed(server, client);
-  registerMarkStackCritical(server, client);
-  registerMarkStackSnoozed(server, client);
-  registerChangeStackStatus(server, client);
-  registerAddStackLink(server, client);
-  registerRemoveStackLink(server, client);
-  registerDeleteStacks(server, client);
 
   return server;
 }
@@ -2051,11 +1502,12 @@ Official MCP server for Exceptionless error tracking and monitoring.
 
 ## Features
 
-- 8 Event tools (submit, query, retrieve, count, sessions)
-- 10 Stack tools (manage error groups, mark fixed, track regressions)
+- 6 Event tools (query, retrieve, count, sessions)
+- 3 Stack tools (query error groups and events)
 - Advanced filtering and search
 - Session tracking
 - Production-ready error handling
+- READ-ONLY operations for safe querying
 
 ## Quick Start
 
@@ -2094,32 +1546,24 @@ Add to Claude Code settings (Settings → MCP Servers):
 
 Ask Claude:
 - "Show my recent Exceptionless errors"
-- "Mark stack xyz as fixed in version 2.1.0"
-- "Find critical production errors from last 7 days"
+- "Get details for error stack xyz"
+- "Find production errors from last 7 days"
+- "Show me all events for stack abc123"
 
 ## Tools
 
-### Events (8 tools)
-- submit-event
+### Events (6 tools)
 - get-events
 - get-event
 - get-event-by-reference
 - count-events
-- delete-events
 - get-sessions
 - get-session-events
 
-### Stacks (10 tools)
+### Stacks (3 tools)
 - get-stacks
 - get-stack
 - get-stack-events
-- mark-stack-fixed
-- mark-stack-critical
-- mark-stack-snoozed
-- change-stack-status
-- add-stack-link
-- remove-stack-link
-- delete-stacks
 
 ## Documentation
 
@@ -2278,27 +1722,18 @@ jobs:
 - [ ] Define API endpoints (src/api/endpoints.ts)
 - [ ] Define API types (src/api/types.ts)
 
-### Event Tools (8 tools)
-- [ ] Implement submit-event
+### Event Tools (6 tools)
 - [ ] Implement get-events
 - [ ] Implement get-event
 - [ ] Implement get-event-by-reference
 - [ ] Implement count-events
-- [ ] Implement delete-events
 - [ ] Implement get-sessions
 - [ ] Implement get-session-events
 
-### Stack Tools (10 tools)
+### Stack Tools (3 tools)
 - [ ] Implement get-stacks
 - [ ] Implement get-stack
 - [ ] Implement get-stack-events
-- [ ] Implement mark-stack-fixed
-- [ ] Implement mark-stack-critical
-- [ ] Implement mark-stack-snoozed
-- [ ] Implement change-stack-status
-- [ ] Implement add-stack-link
-- [ ] Implement remove-stack-link
-- [ ] Implement delete-stacks
 
 ### Server Setup
 - [ ] Implement server creator (src/server.ts)
@@ -2312,14 +1747,14 @@ jobs:
 - [ ] Write validation tests (zod schemas)
 - [ ] Write error formatting tests
 - [ ] Write mock API helpers
-- [ ] Write event tool tests (all 8)
-- [ ] Write stack tool tests (all 10)
+- [ ] Write event tool tests (all 6)
+- [ ] Write stack tool tests (all 3)
 - [ ] Create test fixtures (sample responses)
 - [ ] Run tests and ensure >80% coverage
 
 ### Documentation
 - [ ] Write README.md (comprehensive)
-- [ ] Write docs/TOOLS.md (all 18 tools documented)
+- [ ] Write docs/TOOLS.md (all 9 tools documented)
 - [ ] Write docs/FILTERS.md (filter syntax guide)
 - [ ] Write docs/TROUBLESHOOTING.md (common issues)
 - [ ] Write docs/EXAMPLES.md (usage examples)

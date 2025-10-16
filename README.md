@@ -9,13 +9,14 @@ This project provides a production-ready MCP server that enables Claude Code use
 
 ## Features
 
-- **18 Production-Ready Tools**
-  - 8 Event tools (submit, query, retrieve, count, sessions)
-  - 10 Stack tools (manage error groups, mark fixed, track regressions)
+- **9 Read-Only Query Tools**
+  - 6 Event tools (query, retrieve, count, sessions)
+  - 3 Stack tools (query error groups and events)
 - **Advanced Filtering & Search** - Powerful query syntax for finding errors
 - **Session Tracking** - Analyze user journeys and error context
 - **Token Optimized** - Minimal LLM token usage (80-85% reduction)
 - **Production Quality** - Comprehensive error handling and validation
+- **Read-Only Operations** - Safe querying with no data modification
 
 ## Target Platform
 
@@ -63,32 +64,24 @@ Add to Claude Code settings:
 ### 3. Usage
 Ask Claude:
 - "Show my recent Exceptionless errors"
-- "Mark stack xyz as fixed in version 2.1.0"
-- "Find critical production errors from last 7 days"
+- "Get details for error stack xyz"
+- "Find production errors from last 7 days"
+- "Show me all events for stack abc123"
 
 ## Available Tools
 
-### Event Tools (8)
-- `submit-event` - Submit errors, logs, or usage events
+### Event Tools (6)
 - `get-events` - Query events with advanced filtering
 - `get-event` - Get detailed event information
 - `get-event-by-reference` - Retrieve by external reference ID
 - `count-events` - Count events with aggregations
-- `delete-events` - Bulk delete events
 - `get-sessions` - List user sessions
 - `get-session-events` - Get events in a session
 
-### Stack Tools (10)
+### Stack Tools (3)
 - `get-stacks` - List and search error stacks
 - `get-stack` - Get stack details
-- `get-stack-events` - List occurrences for a stack
-- `mark-stack-fixed` - Mark stack as resolved
-- `mark-stack-critical` - Flag as critical priority
-- `mark-stack-snoozed` - Temporarily hide stack
-- `change-stack-status` - Change stack status
-- `add-stack-link` - Add external reference (JIRA, GitHub)
-- `remove-stack-link` - Remove external reference
-- `delete-stacks` - Bulk delete stacks
+- `get-stack-events` - List event occurrences for a stack
 
 ## Documentation
 
@@ -103,6 +96,7 @@ Ask Claude:
 - [x] Exceptionless API research & documentation
 - [x] MCP architecture research
 - [x] Complete implementation plan with token optimization
+- [x] Read-only tool design (9 query tools)
 - [ ] Implementation (pending)
 - [ ] Testing (pending)
 - [ ] Documentation (pending)
