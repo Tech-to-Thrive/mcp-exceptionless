@@ -38,34 +38,61 @@ mcp-exceptionless/
 └── docs/                     # User documentation (to be implemented)
 ```
 
-## Quick Start (Post-Implementation)
+## Quick Start
 
-### 1. Installation
+### 1. Get Your API Key
+1. Go to https://app.exceptionless.io/project/list
+2. Select your project
+3. Click "API Keys"
+4. Copy your project API key
+
+### 2. Local Development
 ```bash
-npx -y mcp-exceptionless
+# Clone the repository
+git clone https://github.com/Tech-to-Thrive/mcp-exceptionless.git
+cd mcp-exceptionless
+
+# Install dependencies
+npm install
+
+# Build
+npm run build
+
+# Create .env file
+cp .env.example .env
+# Edit .env and add your EXCEPTIONLESS_API_KEY
+
+# Run locally
+npm run dev
 ```
 
-### 2. Configuration
-Add to Claude Code settings:
+### 3. Use in Claude Code
+
+Add to Claude Code settings (Settings → MCP Servers):
+
 ```json
 {
   "mcpServers": {
     "exceptionless": {
-      "command": "npx",
-      "args": ["-y", "mcp-exceptionless"],
+      "command": "node",
+      "args": ["C:\\Projects\\exceptionless_mcp\\dist\\index.js"],
       "env": {
-        "EXCEPTIONLESS_API_KEY": "your-api-key-here"
+        "EXCEPTIONLESS_API_KEY": "your-api-key-here",
+        "EXCEPTIONLESS_DEBUG": "false"
       }
     }
   }
 }
 ```
 
-### 3. Usage
+**Note**: Adjust the path to match your local installation directory.
+
+### 4. Usage Examples
 Ask Claude:
 - "Show my recent Exceptionless errors"
 - "Get details for error stack xyz"
 - "Find production errors from last 7 days"
+- "Count errors by type for the last 24 hours"
 - "Show me all events for stack abc123"
 
 ## Available Tools
@@ -85,22 +112,31 @@ Ask Claude:
 
 ## Documentation
 
+### User Documentation
+- [Tool Reference](docs/TOOLS.md) - Complete guide to all 9 tools
+- [Usage Examples](docs/EXAMPLES.md) - Common query patterns
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Contributing](CONTRIBUTING.md) - How to contribute
+
+### Development Documentation
 - [Exceptionless API Overview](memory-bank/docs/exceptionless-overview.md)
 - [MCP Architecture Overview](memory-bank/docs/mcp-overview.md)
 - [Complete Build Plan](memory-bank/planning/mcp-exceptionless-build-plan.md)
+- [Claude Context](claude.md)
 
 ## Development Status
 
-**Current Phase**: Planning Complete ✅
+**Current Phase**: Production Ready ✅
 
 - [x] Exceptionless API research & documentation
 - [x] MCP architecture research
 - [x] Complete implementation plan with token optimization
 - [x] Read-only tool design (9 query tools)
-- [ ] Implementation (pending)
-- [ ] Testing (pending)
-- [ ] Documentation (pending)
-- [ ] Publishing to npm (pending)
+- [x] Full implementation complete
+- [x] TypeScript build system
+- [x] Unit tests and fixtures
+- [x] Complete documentation
+- [ ] Publishing to npm (ready)
 
 ## Technology Stack
 
@@ -119,6 +155,27 @@ This MCP server is designed with token efficiency in mind:
 - **Smart Pagination**: Default limit of 5 results (50% reduction)
 - **Compact Responses**: Raw JSON output without verbose wrappers (20-30% reduction)
 - **Combined Savings**: ~80-85% total token reduction
+
+All list operations (`get-events`, `get-stacks`, `get-sessions`) default to `mode=summary` and `limit=5`. You can override these settings by explicitly passing `mode=full` or a higher `limit` value when you need more data.
+
+## Project Structure
+
+```
+mcp-exceptionless/
+├── src/                    # TypeScript source code
+│   ├── api/               # HTTP client, errors, retry
+│   ├── config/            # Configuration loader
+│   ├── tools/             # Tool implementations
+│   │   ├── events/       # 6 event tools
+│   │   └── stacks/       # 3 stack tools
+│   ├── utils/            # Logger
+│   ├── server.ts         # MCP server setup
+│   └── index.ts          # Entry point
+├── tests/                 # Unit tests
+├── docs/                  # User documentation
+├── dist/                  # Compiled JavaScript
+└── .github/workflows/     # CI/CD
+```
 
 ## Contributing
 
