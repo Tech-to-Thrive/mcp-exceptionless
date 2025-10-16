@@ -1,0 +1,16 @@
+[
+  {
+    "id": "stack1",
+    "title": "NullReferenceException",
+    "total_occurrences": 42,
+    "status": "open",
+    "last_occurrence": "2025-10-16T12:00:00Z"
+  },
+  {
+    "id": "stack2",
+    "title": "IndexOutOfRangeException",
+    "total_occurrences": 15,
+    "status": "open",
+    "last_occurrence": "2025-10-16T11:00:00Z"
+  }
+]

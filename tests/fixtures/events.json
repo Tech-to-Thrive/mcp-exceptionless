@@ -1,0 +1,16 @@
+[
+  {
+    "id": "event1",
+    "type": "error",
+    "message": "Test error",
+    "date": "2025-10-16T12:00:00Z",
+    "tags": ["production", "api"]
+  },
+  {
+    "id": "event2",
+    "type": "log",
+    "message": "Test log",
+    "date": "2025-10-16T12:01:00Z",
+    "tags": ["production"]
+  }
+]
