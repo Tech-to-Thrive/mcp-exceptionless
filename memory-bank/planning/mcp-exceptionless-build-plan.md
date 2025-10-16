@@ -729,15 +729,15 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const GetEventsSchema = z.object({
-  filter: z.string().optional().describe('Filter query (e.g., "type:error", "tag:production")'),
-  sort: z.string().optional().describe('Sort order (e.g., "-date" for newest first)'),
-  time: z.string().optional().describe('Time range (e.g., "last 7 days")'),
-  offset: z.string().optional().describe('Timezone offset in minutes'),
-  mode: z.enum(['full', 'summary']).optional().describe('Response detail level'),
-  page: z.number().int().min(1).optional().describe('Page number (≥1)'),
-  limit: z.number().int().min(1).max(100).optional().default(10).describe('Results per page (1-100, default 10)'),
-  before: z.string().optional().describe('Cursor for pagination'),
-  after: z.string().optional().describe('Cursor for pagination')
+  filter: z.string().optional().describe('Filter (e.g. type:error, tag:production)'),
+  sort: z.string().optional().describe('Sort order (e.g. -date)'),
+  time: z.string().optional().describe('Time range (e.g. last 7 days)'),
+  offset: z.string().optional().describe('Timezone offset (minutes)'),
+  mode: z.enum(['full', 'summary']).optional().default('summary'),
+  page: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(100).optional().default(5),
+  before: z.string().optional(),
+  after: z.string().optional()
 });
 
 export function registerGetEvents(server: McpServer, client: ExceptionlessClient) {
@@ -745,47 +745,19 @@ export function registerGetEvents(server: McpServer, client: ExceptionlessClient
     'get-events',
     {
       title: 'Get Events',
-      description: `Query events with advanced filtering and pagination.
-
-Filter Examples:
-- type:error                          # Only errors
-- tag:production                      # Production environment
-- date:>now-7d                        # Last 7 days
-- type:error AND tag:api              # Errors in API
-- is_first_occurrence:true            # New errors only
-- (type:error OR type:log) AND tag:prod  # Compound query
-
-Sort Examples:
-- -date                               # Most recent first (default)
-- value                               # Lowest value first
-
-Time Ranges:
-- last 7 days
-- last 24 hours
-- last 30 days
-
-Mode:
-- full: Complete event details
-- summary: Lightweight response`,
+      description: 'Query events with filtering, sorting, and pagination. Supports filter syntax (type:error, tag:prod, date:>now-7d), time ranges, and mode (summary/full).',
       inputSchema: GetEventsSchema,
       outputSchema: z.any()
     },
     async (params) => {
       try {
         const result = await client.get(ENDPOINTS.EVENTS, params);
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve events.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -803,34 +775,27 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const GetEventSchema = z.object({
-  id: z.string().min(1, 'Event ID is required').describe('Event ID')
+  id: z.string().min(1).describe('Event ID')
 });
 
 export function registerGetEvent(server: McpServer, client: ExceptionlessClient) {
   server.registerTool(
     'get-event',
     {
-      title: 'Get Event by ID',
-      description: 'Get detailed information about a specific event including all custom data, stack trace, user info, and environment details.',
+      title: 'Get Event',
+      description: 'Get full event details by ID.',
       inputSchema: GetEventSchema,
       outputSchema: z.any()
     },
     async (params) => {
       try {
         const result = await client.get(ENDPOINTS.EVENT_BY_ID(params.id));
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve event.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -848,34 +813,27 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const GetEventByReferenceSchema = z.object({
-  reference_id: z.string().min(1, 'Reference ID is required').describe('External reference ID')
+  reference_id: z.string().min(1).describe('External reference ID')
 });
 
 export function registerGetEventByReference(server: McpServer, client: ExceptionlessClient) {
   server.registerTool(
     'get-event-by-reference',
     {
-      title: 'Get Event by Reference ID',
-      description: 'Retrieve an event using your own correlation ID. Useful for linking Exceptionless events with external systems (support tickets, transaction IDs, etc.).',
+      title: 'Get Event by Reference',
+      description: 'Get event by external reference/correlation ID.',
       inputSchema: GetEventByReferenceSchema,
       outputSchema: z.any()
     },
     async (params) => {
       try {
         const result = await client.get(ENDPOINTS.EVENT_BY_REF(params.reference_id));
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve event by reference.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -893,10 +851,10 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const CountEventsSchema = z.object({
-  filter: z.string().optional().describe('Filter query'),
-  time: z.string().optional().describe('Time range'),
-  offset: z.string().optional().describe('Timezone offset in minutes'),
-  aggregations: z.string().optional().describe('Aggregation fields (comma-separated, e.g., "date:1h,type")')
+  filter: z.string().optional(),
+  time: z.string().optional(),
+  offset: z.string().optional(),
+  aggregations: z.string().optional().describe('Comma-separated (e.g. date:1h,type)')
 });
 
 export function registerCountEvents(server: McpServer, client: ExceptionlessClient) {
@@ -904,48 +862,19 @@ export function registerCountEvents(server: McpServer, client: ExceptionlessClie
     'count-events',
     {
       title: 'Count Events',
-      description: `Count events with optional aggregations for analytics.
-
-Aggregation Examples:
-- date:1h                          # Hourly breakdown
-- date:1d                          # Daily breakdown
-- type                             # Count by event type
-- date:1d,type                     # Daily breakdown per type
-- tag                              # Count by tags
-
-Returns:
-{
-  "total": 1234,
-  "aggregations": {
-    "date": {
-      "2025-10-16T10:00:00Z": 45,
-      "2025-10-16T11:00:00Z": 67
-    },
-    "type": {
-      "error": 890,
-      "log": 344
-    }
-  }
-}`,
+      description: 'Count events with optional aggregations (date:1h, type, tag, etc).',
       inputSchema: CountEventsSchema,
       outputSchema: z.any()
     },
     async (params) => {
       try {
         const result = await client.get(ENDPOINTS.EVENT_COUNT, params);
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to count events.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -967,9 +896,9 @@ const GetSessionsSchema = z.object({
   sort: z.string().optional(),
   time: z.string().optional(),
   offset: z.string().optional(),
-  mode: z.enum(['full', 'summary']).optional(),
+  mode: z.enum(['full', 'summary']).optional().default('summary'),
   page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional().default(10),
+  limit: z.number().int().min(1).max(100).optional().default(5),
   before: z.string().optional(),
   after: z.string().optional()
 });
@@ -979,26 +908,19 @@ export function registerGetSessions(server: McpServer, client: ExceptionlessClie
     'get-sessions',
     {
       title: 'Get Sessions',
-      description: 'List user activity sessions. Sessions group events by user activity period for analyzing user journeys and correlating errors.',
+      description: 'List user activity sessions with filtering and pagination.',
       inputSchema: GetSessionsSchema,
       outputSchema: z.any()
     },
     async (params) => {
       try {
         const result = await client.get(ENDPOINTS.SESSIONS, params);
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve sessions.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -1016,11 +938,11 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const GetSessionEventsSchema = z.object({
-  session_id: z.string().min(1, 'Session ID is required').describe('Session ID'),
+  session_id: z.string().min(1).describe('Session ID'),
   filter: z.string().optional(),
   sort: z.string().optional(),
   page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional().default(10),
+  limit: z.number().int().min(1).max(100).optional().default(5),
   before: z.string().optional(),
   after: z.string().optional()
 });
@@ -1030,7 +952,7 @@ export function registerGetSessionEvents(server: McpServer, client: Exceptionles
     'get-session-events',
     {
       title: 'Get Session Events',
-      description: 'Retrieve all events that occurred during a user session. Useful for understanding the sequence of events leading to an error.',
+      description: 'Get all events in a session by session ID.',
       inputSchema: GetSessionEventsSchema,
       outputSchema: z.any()
     },
@@ -1038,19 +960,12 @@ export function registerGetSessionEvents(server: McpServer, client: Exceptionles
       try {
         const { session_id, ...queryParams } = params;
         const result = await client.get(ENDPOINTS.SESSION_BY_ID(session_id), queryParams);
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve session events.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -1070,13 +985,13 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const GetStacksSchema = z.object({
-  filter: z.string().optional().describe('Filter query'),
-  sort: z.string().optional().describe('Sort order'),
-  time: z.string().optional().describe('Time range'),
-  offset: z.string().optional().describe('Timezone offset'),
-  mode: z.enum(['full', 'summary']).optional(),
+  filter: z.string().optional().describe('Filter (e.g. status:open, total_occurrences:>100)'),
+  sort: z.string().optional().describe('Sort (e.g. -total_occurrences)'),
+  time: z.string().optional(),
+  offset: z.string().optional(),
+  mode: z.enum(['full', 'summary']).optional().default('summary'),
   page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional().default(10),
+  limit: z.number().int().min(1).max(100).optional().default(5),
   before: z.string().optional(),
   after: z.string().optional()
 });
@@ -1086,37 +1001,19 @@ export function registerGetStacks(server: McpServer, client: ExceptionlessClient
     'get-stacks',
     {
       title: 'Get Stacks',
-      description: `List and search error stacks (grouped errors). Stacks are groups of similar errors.
-
-Filter Examples:
-- status:open                      # Open/unresolved errors
-- status:(open OR regressed)       # Open or regressed
-- occurrences_are_critical:true    # Critical errors only
-- total_occurrences:>100           # High-frequency errors
-- date:>now-7d                     # Recent activity
-
-Sort Examples:
-- -total_occurrences               # Most frequent first
-- -last_occurrence                 # Most recent activity`,
+      description: 'List and search error stacks (grouped errors) with filtering and sorting.',
       inputSchema: GetStacksSchema,
       outputSchema: z.any()
     },
     async (params) => {
       try {
         const result = await client.get(ENDPOINTS.STACKS, params);
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve stacks.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -1134,7 +1031,7 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const GetStackSchema = z.object({
-  id: z.string().min(1, 'Stack ID is required').describe('Stack ID')
+  id: z.string().min(1).describe('Stack ID')
 });
 
 export function registerGetStack(server: McpServer, client: ExceptionlessClient) {
@@ -1142,26 +1039,19 @@ export function registerGetStack(server: McpServer, client: ExceptionlessClient)
     'get-stack',
     {
       title: 'Get Stack',
-      description: 'Retrieve complete details about an error stack including occurrence count, status, fix version, references, and metadata.',
+      description: 'Get full stack details by ID.',
       inputSchema: GetStackSchema,
       outputSchema: z.any()
     },
     async (params) => {
       try {
         const result = await client.get(ENDPOINTS.STACK_BY_ID(params.id));
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve stack.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
@@ -1179,12 +1069,12 @@ import { ExceptionlessClient } from '../../api/client';
 import { ENDPOINTS } from '../../api/endpoints';
 
 const GetStackEventsSchema = z.object({
-  stack_id: z.string().min(1, 'Stack ID is required').describe('Stack ID'),
+  stack_id: z.string().min(1).describe('Stack ID'),
   filter: z.string().optional(),
   sort: z.string().optional(),
   page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional().default(10),
-  mode: z.enum(['full', 'summary']).optional()
+  limit: z.number().int().min(1).max(100).optional().default(5),
+  mode: z.enum(['full', 'summary']).optional().default('summary')
 });
 
 export function registerGetStackEvents(server: McpServer, client: ExceptionlessClient) {
@@ -1192,7 +1082,7 @@ export function registerGetStackEvents(server: McpServer, client: ExceptionlessC
     'get-stack-events',
     {
       title: 'Get Stack Events',
-      description: 'List all event occurrences for a specific error stack. Useful for examining individual instances, finding patterns, or identifying affected users.',
+      description: 'Get all event occurrences for a stack by stack ID.',
       inputSchema: GetStackEventsSchema,
       outputSchema: z.any()
     },
@@ -1200,19 +1090,12 @@ export function registerGetStackEvents(server: McpServer, client: ExceptionlessC
       try {
         const { stack_id, ...queryParams } = params;
         const result = await client.get(ENDPOINTS.STACK_EVENTS(stack_id), queryParams);
-
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: 'text', text: JSON.stringify(result) }]
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: `Failed to retrieve stack events.\n\nError: ${JSON.stringify(error, null, 2)}`
-          }],
+          content: [{ type: 'text', text: JSON.stringify(error) }],
           isError: true
         };
       }
