@@ -1,13 +1,17 @@
 import pino from 'pino';
 
+const isDebug = process.env.EXCEPTIONLESS_DEBUG === 'true';
+
 export const logger = pino({
-  level: process.env.EXCEPTIONLESS_DEBUG === 'true' ? 'debug' : 'error',
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss',
-      ignore: 'pid,hostname'
+  level: isDebug ? 'debug' : 'error',
+  ...(isDebug && {
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss',
+        ignore: 'pid,hostname'
+      }
     }
-  }
+  })
 });
