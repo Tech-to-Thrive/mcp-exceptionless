@@ -4,15 +4,15 @@ import { ENDPOINTS } from '../../api/endpoints.js';
 
 const GetEventsSchema = z.object({
   project_id: z.string().optional().describe('Project ID to filter events (overrides EXCEPTIONLESS_PROJECT_ID if set)'),
-  filter: z.string().optional().describe('Filter (e.g. type:error, tag:production)'),
-  sort: z.string().optional().describe('Sort order (e.g. -date)'),
-  time: z.string().optional().describe('Time range (e.g. last 7 days)'),
-  offset: z.string().optional().describe('Timezone offset (minutes)'),
-  mode: z.enum(['full', 'summary']).optional().default('summary'),
-  page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional().default(5),
-  before: z.string().optional(),
-  after: z.string().optional()
+  filter: z.string().optional().describe('Filter query (e.g. type:error, tag:prod, is_fixed:false, date:>now-7d)'),
+  sort: z.string().optional().describe('Sort field (e.g. date, -date). Prefix with - for descending'),
+  time: z.string().optional().describe('Time range (e.g. last hour, last 7 days, last week)'),
+  offset: z.string().optional().describe('Timezone offset in minutes'),
+  mode: z.enum(['full', 'summary']).optional().default('summary').describe('summary=minimal fields, full=all fields (uses more tokens)'),
+  page: z.number().int().min(1).optional().describe('Page number for pagination'),
+  limit: z.number().int().min(1).max(100).optional().default(5).describe('Results per page (default: 5, max: 100)'),
+  before: z.string().optional().describe('Cursor for pagination (before this ID)'),
+  after: z.string().optional().describe('Cursor for pagination (after this ID)')
 });
 
 export const getEventsTool = {

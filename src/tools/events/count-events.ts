@@ -4,10 +4,10 @@ import { ENDPOINTS } from '../../api/endpoints.js';
 
 const CountEventsSchema = z.object({
   project_id: z.string().optional().describe('Project ID to filter events (overrides EXCEPTIONLESS_PROJECT_ID if set)'),
-  filter: z.string().optional(),
-  time: z.string().optional(),
-  offset: z.string().optional(),
-  aggregations: z.string().optional().describe('Comma-separated (e.g. date:1h,type)')
+  filter: z.string().optional().describe('Filter query (e.g. type:error, tag:prod, date:>now-7d)'),
+  time: z.string().optional().describe('Time range (e.g. last hour, last 7 days, last week)'),
+  offset: z.string().optional().describe('Timezone offset in minutes'),
+  aggregations: z.string().optional().describe('Comma-separated aggregations (e.g. date:1h, type, tag)')
 });
 
 export const countEventsTool = {

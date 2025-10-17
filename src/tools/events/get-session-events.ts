@@ -5,12 +5,12 @@ import { ENDPOINTS } from '../../api/endpoints.js';
 const GetSessionEventsSchema = z.object({
   session_id: z.string().min(1).describe('Session ID'),
   project_id: z.string().optional().describe('Project ID to scope query (overrides EXCEPTIONLESS_PROJECT_ID if set)'),
-  filter: z.string().optional(),
-  sort: z.string().optional(),
-  page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional().default(5),
-  before: z.string().optional(),
-  after: z.string().optional()
+  filter: z.string().optional().describe('Filter query (e.g. type:error, type:log)'),
+  sort: z.string().optional().describe('Sort field (e.g. date, -date). Prefix with - for descending'),
+  page: z.number().int().min(1).optional().describe('Page number for pagination'),
+  limit: z.number().int().min(1).max(100).optional().default(5).describe('Results per page (default: 5, max: 100)'),
+  before: z.string().optional().describe('Cursor for pagination (before this ID)'),
+  after: z.string().optional().describe('Cursor for pagination (after this ID)')
 });
 
 export const getSessionEventsTool = {

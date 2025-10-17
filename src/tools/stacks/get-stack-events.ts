@@ -5,11 +5,11 @@ import { ENDPOINTS } from '../../api/endpoints.js';
 const GetStackEventsSchema = z.object({
   stack_id: z.string().min(1).describe('Stack ID'),
   project_id: z.string().optional().describe('Project ID to scope query (overrides EXCEPTIONLESS_PROJECT_ID if set)'),
-  filter: z.string().optional(),
-  sort: z.string().optional(),
-  page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional().default(5),
-  mode: z.enum(['full', 'summary']).optional().default('summary')
+  filter: z.string().optional().describe('Filter query (e.g. date:>now-7d, is_fixed:false)'),
+  sort: z.string().optional().describe('Sort field (e.g. date, -date). Prefix with - for descending'),
+  page: z.number().int().min(1).optional().describe('Page number for pagination'),
+  limit: z.number().int().min(1).max(100).optional().default(5).describe('Results per page (default: 5, max: 100)'),
+  mode: z.enum(['full', 'summary']).optional().default('summary').describe('summary=minimal fields, full=all fields (uses more tokens)')
 });
 
 export const getStackEventsTool = {
