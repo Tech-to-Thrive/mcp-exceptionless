@@ -20,7 +20,12 @@ export const getEventsTool = {
   inputSchema: GetEventsSchema,
   handler: async (params: z.infer<typeof GetEventsSchema>, client: ExceptionlessClient) => {
     try {
-      const result = await client.get(ENDPOINTS.EVENTS, params);
+      // Use project-scoped endpoint if projectId is configured
+      const endpoint = client.projectId
+        ? ENDPOINTS.PROJECT_EVENTS(client.projectId)
+        : ENDPOINTS.EVENTS;
+
+      const result = await client.get(endpoint, params);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

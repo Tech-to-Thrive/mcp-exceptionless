@@ -15,7 +15,11 @@ export const countEventsTool = {
   inputSchema: CountEventsSchema,
   handler: async (params: z.infer<typeof CountEventsSchema>, client: ExceptionlessClient) => {
     try {
-      const result = await client.get(ENDPOINTS.EVENT_COUNT, params);
+      const endpoint = client.projectId
+        ? ENDPOINTS.PROJECT_EVENT_COUNT(client.projectId)
+        : ENDPOINTS.EVENT_COUNT;
+
+      const result = await client.get(endpoint, params);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

@@ -19,7 +19,11 @@ export const getSessionEventsTool = {
   handler: async (params: z.infer<typeof GetSessionEventsSchema>, client: ExceptionlessClient) => {
     try {
       const { session_id, ...queryParams } = params;
-      const result = await client.get(ENDPOINTS.SESSION_BY_ID(session_id), queryParams);
+      const endpoint = client.projectId
+        ? ENDPOINTS.PROJECT_SESSION_BY_ID(client.projectId, session_id)
+        : ENDPOINTS.SESSION_BY_ID(session_id);
+
+      const result = await client.get(endpoint, queryParams);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

@@ -20,7 +20,11 @@ export const getStacksTool = {
   inputSchema: GetStacksSchema,
   handler: async (params: z.infer<typeof GetStacksSchema>, client: ExceptionlessClient) => {
     try {
-      const result = await client.get(ENDPOINTS.STACKS, params);
+      const endpoint = client.projectId
+        ? ENDPOINTS.PROJECT_STACKS(client.projectId)
+        : ENDPOINTS.STACKS;
+
+      const result = await client.get(endpoint, params);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

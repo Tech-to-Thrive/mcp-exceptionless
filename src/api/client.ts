@@ -62,6 +62,10 @@ export class ExceptionlessClient {
     return false;
   }
 
+  get projectId(): string | undefined {
+    return this.config.projectId;
+  }
+
   async get<T>(url: string, params?: Record<string, any>): Promise<T> {
     const response = await this.client.get<T>(url, { params });
     return response.data;

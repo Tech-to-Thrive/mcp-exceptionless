@@ -12,7 +12,11 @@ export const getEventByReferenceTool = {
   inputSchema: GetEventByReferenceSchema,
   handler: async (params: z.infer<typeof GetEventByReferenceSchema>, client: ExceptionlessClient) => {
     try {
-      const result = await client.get(ENDPOINTS.EVENT_BY_REF(params.reference_id));
+      const endpoint = client.projectId
+        ? ENDPOINTS.PROJECT_EVENT_BY_REF(client.projectId, params.reference_id)
+        : ENDPOINTS.EVENT_BY_REF(params.reference_id);
+
+      const result = await client.get(endpoint);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

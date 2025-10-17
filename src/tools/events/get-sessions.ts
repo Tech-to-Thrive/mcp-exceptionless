@@ -20,7 +20,11 @@ export const getSessionsTool = {
   inputSchema: GetSessionsSchema,
   handler: async (params: z.infer<typeof GetSessionsSchema>, client: ExceptionlessClient) => {
     try {
-      const result = await client.get(ENDPOINTS.SESSIONS, params);
+      const endpoint = client.projectId
+        ? ENDPOINTS.PROJECT_SESSIONS(client.projectId)
+        : ENDPOINTS.SESSIONS;
+
+      const result = await client.get(endpoint, params);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

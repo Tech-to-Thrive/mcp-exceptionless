@@ -5,6 +5,7 @@ dotenv.config();
 export interface Config {
   apiKey: string;
   apiUrl: string;
+  projectId?: string;
   timeout: number;
   debug: boolean;
 }
@@ -12,6 +13,7 @@ export interface Config {
 export function loadConfig(): Config {
   const apiKey = process.env.EXCEPTIONLESS_API_KEY;
   const apiUrl = process.env.EXCEPTIONLESS_API_URL || 'https://api.exceptionless.io';
+  const projectId = process.env.EXCEPTIONLESS_PROJECT_ID;
   const timeout = parseInt(process.env.EXCEPTIONLESS_TIMEOUT || '30000');
   const debug = process.env.EXCEPTIONLESS_DEBUG === 'true';
 
@@ -36,5 +38,5 @@ export function loadConfig(): Config {
     throw new Error('EXCEPTIONLESS_TIMEOUT must be between 1 and 600000 ms');
   }
 
-  return { apiKey, apiUrl, timeout, debug };
+  return { apiKey, apiUrl, projectId, timeout, debug };
 }
