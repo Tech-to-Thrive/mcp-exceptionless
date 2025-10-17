@@ -23,4 +23,12 @@ export const ENDPOINTS = {
 
   // Stacks - Project level
   PROJECT_STACKS: (projectId: string) => `/projects/${projectId}/stacks`,
+
+  // Projects
+  PROJECTS: '/projects',
+  PROJECT_BY_ID: (id: string) => `/projects/${id}`,
+
+  // Organizations
+  ORGANIZATIONS: '/organizations',
+  ORGANIZATION_BY_ID: (id: string) => `/organizations/${id}`,
 } as const;

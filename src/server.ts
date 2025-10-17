@@ -20,6 +20,14 @@ import { getStacksTool } from './tools/stacks/get-stacks.js';
 import { getStackTool } from './tools/stacks/get-stack.js';
 import { getStackEventsTool } from './tools/stacks/get-stack-events.js';
 
+// Project tools
+import { getProjectsTool } from './tools/projects/get-projects.js';
+import { getProjectTool } from './tools/projects/get-project.js';
+
+// Organization tools
+import { getOrganizationsTool } from './tools/organizations/get-organizations.js';
+import { getOrganizationTool } from './tools/organizations/get-organization.js';
+
 const tools = [
   getEventsTool,
   getEventTool,
@@ -30,6 +38,10 @@ const tools = [
   getStacksTool,
   getStackTool,
   getStackEventsTool,
+  getProjectsTool,
+  getProjectTool,
+  getOrganizationsTool,
+  getOrganizationTool,
 ];
 
 export function createServer(config: Config) {

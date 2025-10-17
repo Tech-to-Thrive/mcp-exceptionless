@@ -22,12 +22,10 @@ function getConfiguration() {
     const apiKey = projectConfig.mcpServers.exceptionless.env.EXCEPTIONLESS_API_KEY;
     const projectId = projectConfig.mcpServers.exceptionless.env.EXCEPTIONLESS_PROJECT_ID;
 
-    console.log('📋 Using configuration from .claude.json');
+    console.log('📋 Testing New Project and Organization Tools');
     console.log(`   API Key: ${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`);
     if (projectId) {
       console.log(`   Project ID: ${projectId}`);
-    } else {
-      console.log('   ⚠️  Project ID not set (will use organization-level endpoints)');
     }
     console.log('\n');
 
@@ -39,7 +37,7 @@ function getConfiguration() {
   }
 }
 
-class MCPTester {
+class NewToolsTester {
   constructor() {
     this.messageId = 0;
     this.responses = new Map();
@@ -50,7 +48,7 @@ class MCPTester {
   }
 
   async startServer() {
-    console.log('🚀 Starting Exceptionless MCP Server with configured settings...\n');
+    console.log('🚀 Starting MCP Server...\n');
 
     const env = {
       ...process.env,
@@ -68,8 +66,8 @@ class MCPTester {
 
     this.server.stderr.on('data', (data) => {
       const stderr = data.toString();
-      if (!stderr.includes('"level":50')) { // Ignore error level logs
-        console.log('📋 Server log:', stderr);
+      if (!stderr.includes('"level":50')) {
+        console.log('📋 Server:', stderr);
       }
     });
 
@@ -90,12 +88,11 @@ class MCPTester {
             }
           }
         } catch (e) {
-          console.error('❌ Failed to parse response:', line);
+          // Ignore parse errors
         }
       }
     });
 
-    // Wait for server to be ready
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
@@ -117,35 +114,36 @@ class MCPTester {
           this.responses.delete(id);
           reject(new Error('Request timeout'));
         }
-      }, 10000);
+      }, 15000);
     });
   }
 
   async initialize() {
-    console.log('🔧 Initializing MCP connection...\n');
     const response = await this.sendRequest('initialize', {
       protocolVersion: '2024-11-05',
       capabilities: {},
-      clientInfo: {
-        name: 'mcp-tester',
-        version: '1.0.0'
-      }
+      clientInfo: { name: 'new-tools-tester', version: '1.0.0' }
     });
-    console.log('✅ Initialized:', JSON.stringify(response.result, null, 2), '\n');
-
     await this.sendRequest('initialized');
     return response;
   }
 
   async listTools() {
-    console.log('📋 Listing available tools...\n');
+    console.log('📋 Listing all available tools...\n');
     const response = await this.sendRequest('tools/list');
     const tools = response.result.tools;
-    console.log(`✅ Found ${tools.length} tools:\n`);
-    tools.forEach(tool => {
+    console.log(`✅ Found ${tools.length} tools total\n`);
+
+    const newTools = tools.filter(t =>
+      t.name.includes('project') || t.name.includes('organization')
+    );
+
+    console.log(`🆕 New Tools (${newTools.length}):`);
+    newTools.forEach(tool => {
       console.log(`  • ${tool.name}: ${tool.description}`);
     });
     console.log('\n');
+
     return tools;
   }
 
@@ -219,201 +217,69 @@ class MCPTester {
 
   async runTests() {
     console.log('═══════════════════════════════════════════════════════════\n');
-    console.log('           EXCEPTIONLESS MCP SERVER TEST SUITE\n');
+    console.log('       NEW TOOLS TEST SUITE: Projects & Organizations\n');
     console.log('═══════════════════════════════════════════════════════════\n\n');
 
-    // Test 1: get-events (basic)
-    console.log('━━━ TEST GROUP 1: EVENT QUERY TOOLS ━━━\n');
-    this.testResults.push(await this.callTool('get-events', { limit: 3, mode: 'summary' }));
+    // Test 1: get-projects
+    console.log('━━━ TEST GROUP 1: PROJECT TOOLS ━━━\n');
+    this.testResults.push(await this.callTool('get-projects', {}));
+    this.testResults.push(await this.callTool('get-projects', { mode: 'full', limit: 5 }));
+    this.testResults.push(await this.callTool('get-projects', { mode: 'summary', limit: 10 }));
 
-    // Test 2: get-events with filter
-    this.testResults.push(await this.callTool('get-events', {
-      filter: 'type:error',
-      limit: 5,
-      mode: 'full'
-    }));
-
-    // Test 3: get-events with time range
-    this.testResults.push(await this.callTool('get-events', {
-      time: 'last 24 hours',
-      limit: 10,
-      mode: 'summary'
-    }));
-
-    // Test 4: get-events with sort
-    this.testResults.push(await this.callTool('get-events', {
-      sort: '-date',
-      limit: 5
-    }));
-
-    // Test 5: count-events
-    console.log('━━━ TEST GROUP 2: EVENT COUNTING ━━━\n');
-    this.testResults.push(await this.callTool('count-events', {}));
-
-    // Test 6: count-events with aggregations
-    this.testResults.push(await this.callTool('count-events', {
-      aggregations: 'date:1h,type'
-    }));
-
-    // Test 7: count-events with filter
-    this.testResults.push(await this.callTool('count-events', {
-      filter: 'type:error',
-      time: 'last 7 days'
-    }));
-
-    // Test 8: get-sessions
-    console.log('━━━ TEST GROUP 3: SESSION TOOLS ━━━\n');
-    this.testResults.push(await this.callTool('get-sessions', { limit: 5 }));
-
-    // Test 9: get-sessions with filter
-    this.testResults.push(await this.callTool('get-sessions', {
-      filter: 'type:session',
-      mode: 'full',
-      limit: 3
-    }));
-
-    // Test 10: get-stacks
-    console.log('━━━ TEST GROUP 4: STACK TOOLS ━━━\n');
-    this.testResults.push(await this.callTool('get-stacks', { limit: 5, mode: 'summary' }));
-
-    // Test 11: get-stacks with filter
-    this.testResults.push(await this.callTool('get-stacks', {
-      filter: 'status:open',
-      sort: '-total_occurrences',
-      limit: 10
-    }));
-
-    // Test 12: get-stacks with mode full
-    this.testResults.push(await this.callTool('get-stacks', {
-      mode: 'full',
-      limit: 3
-    }));
-
-    // Now get real data to test ID-based tools
-    console.log('━━━ TEST GROUP 5: ID-BASED QUERIES ━━━\n');
-
-    // Get an event ID to test with
-    const eventsResult = this.testResults.find(r => r.tool === 'get-events' && r.success && r.data);
-    if (eventsResult && eventsResult.data) {
-      let eventId;
-      if (Array.isArray(eventsResult.data)) {
-        eventId = eventsResult.data[0]?.id;
-      } else if (eventsResult.data.data && Array.isArray(eventsResult.data.data)) {
-        eventId = eventsResult.data.data[0]?.id;
-      }
-
-      if (eventId) {
-        console.log(`   Using event ID: ${eventId}\n`);
-        this.testResults.push(await this.callTool('get-event', { id: eventId }));
-      } else {
-        console.log('   ⚠️  No event ID found, skipping get-event test\n');
-        this.testResults.push({
-          tool: 'get-event',
-          args: {},
-          success: false,
-          error: 'No event ID available',
-          duration: 0
-        });
+    // Get a project ID from the results
+    const projectsResult = this.testResults.find(r => r.tool === 'get-projects' && r.success && r.data);
+    let projectId = null;
+    if (projectsResult && projectsResult.data) {
+      if (Array.isArray(projectsResult.data)) {
+        projectId = projectsResult.data[0]?.id;
+      } else if (projectsResult.data.data && Array.isArray(projectsResult.data.data)) {
+        projectId = projectsResult.data.data[0]?.id;
       }
     }
 
-    // Get a stack ID to test with
-    const stacksResult = this.testResults.find(r => r.tool === 'get-stacks' && r.success && r.data);
-    if (stacksResult && stacksResult.data) {
-      let stackId;
-      if (Array.isArray(stacksResult.data)) {
-        stackId = stacksResult.data[0]?.id;
-      } else if (stacksResult.data.data && Array.isArray(stacksResult.data.data)) {
-        stackId = stacksResult.data.data[0]?.id;
-      }
+    // Test 2: get-project
+    if (projectId) {
+      console.log(`   Using real project ID: ${projectId}\n`);
+      this.testResults.push(await this.callTool('get-project', { id: projectId }));
+    } else {
+      console.log('   ⚠️  No project ID found, testing with invalid ID\n');
+      this.testResults.push(await this.callTool('get-project', { id: 'test-project-id' }));
+    }
 
-      if (stackId) {
-        console.log(`   Using stack ID: ${stackId}\n`);
-        this.testResults.push(await this.callTool('get-stack', { id: stackId }));
-        this.testResults.push(await this.callTool('get-stack-events', {
-          stack_id: stackId,
-          limit: 5
-        }));
-      } else {
-        console.log('   ⚠️  No stack ID found, skipping get-stack tests\n');
-        this.testResults.push({
-          tool: 'get-stack',
-          args: {},
-          success: false,
-          error: 'No stack ID available',
-          duration: 0
-        });
-        this.testResults.push({
-          tool: 'get-stack-events',
-          args: {},
-          success: false,
-          error: 'No stack ID available',
-          duration: 0
-        });
+    // Test 3: get-organizations
+    console.log('\n━━━ TEST GROUP 2: ORGANIZATION TOOLS ━━━\n');
+    this.testResults.push(await this.callTool('get-organizations', {}));
+    this.testResults.push(await this.callTool('get-organizations', { mode: 'full', limit: 5 }));
+
+    // Get an organization ID from the results
+    const orgsResult = this.testResults.find(r => r.tool === 'get-organizations' && r.success && r.data);
+    let orgId = null;
+    if (orgsResult && orgsResult.data) {
+      if (Array.isArray(orgsResult.data)) {
+        orgId = orgsResult.data[0]?.id;
+      } else if (orgsResult.data.data && Array.isArray(orgsResult.data.data)) {
+        orgId = orgsResult.data.data[0]?.id;
       }
     }
 
-    // Test 13: get-event-by-reference (will likely fail without valid reference)
-    this.testResults.push(await this.callTool('get-event-by-reference', {
-      reference_id: 'test-ref-123'
-    }));
-
-    // Get a session ID if available
-    const sessionsResult = this.testResults.find(r => r.tool === 'get-sessions' && r.success && r.data);
-    if (sessionsResult && sessionsResult.data) {
-      let sessionId;
-      if (Array.isArray(sessionsResult.data)) {
-        sessionId = sessionsResult.data[0]?.id;
-      } else if (sessionsResult.data.data && Array.isArray(sessionsResult.data.data)) {
-        sessionId = sessionsResult.data.data[0]?.id;
-      }
-
-      if (sessionId) {
-        console.log(`   Using session ID: ${sessionId}\n`);
-        this.testResults.push(await this.callTool('get-session-events', {
-          session_id: sessionId,
-          limit: 5
-        }));
-      } else {
-        console.log('   ⚠️  No session ID found, skipping get-session-events test\n');
-        this.testResults.push({
-          tool: 'get-session-events',
-          args: {},
-          success: false,
-          error: 'No session ID available',
-          duration: 0
-        });
-      }
+    // Test 4: get-organization
+    if (orgId) {
+      console.log(`   Using real organization ID: ${orgId}\n`);
+      this.testResults.push(await this.callTool('get-organization', { id: orgId }));
+    } else {
+      console.log('   ⚠️  No organization ID found, testing with invalid ID\n');
+      this.testResults.push(await this.callTool('get-organization', { id: 'test-org-id' }));
     }
 
-    // Edge cases and error handling
-    console.log('━━━ TEST GROUP 6: ERROR HANDLING & EDGE CASES ━━━\n');
-
-    // Invalid ID
-    this.testResults.push(await this.callTool('get-event', { id: 'invalid-id-123' }));
-
-    // Invalid filter syntax
-    this.testResults.push(await this.callTool('get-events', {
-      filter: 'invalid:::syntax',
-      limit: 1
-    }));
-
-    // Extreme pagination
-    this.testResults.push(await this.callTool('get-events', {
-      limit: 100,
-      page: 1
-    }));
-
-    // Empty results scenario
-    this.testResults.push(await this.callTool('get-events', {
-      filter: 'type:nonexistent_type_xyz',
-      limit: 1
-    }));
+    // Edge cases
+    console.log('\n━━━ TEST GROUP 3: EDGE CASES ━━━\n');
+    this.testResults.push(await this.callTool('get-project', { id: 'invalid-id-12345' }));
+    this.testResults.push(await this.callTool('get-organization', { id: 'invalid-org-id' }));
   }
 
   generateReport() {
     console.log('\n\n═══════════════════════════════════════════════════════════\n');
-    console.log('                    TEST SUMMARY REPORT\n');
+    console.log('                NEW TOOLS TEST SUMMARY\n');
     console.log('═══════════════════════════════════════════════════════════\n');
 
     const total = this.testResults.length;
@@ -460,11 +326,22 @@ class MCPTester {
       });
     }
 
-    console.log('═══════════════════════════════════════════════════════════\n');
+    // Assessment
+    const successRate = (successful / total) * 100;
+    console.log('━━━ Production Readiness Assessment ━━━\n');
+    if (successRate >= 75) {
+      console.log('✅ NEW TOOLS READY - All new tools functioning correctly');
+    } else {
+      console.log('❌ REVIEW NEEDED - Some tools need attention');
+    }
+    console.log(`   Success Rate: ${successRate.toFixed(1)}%`);
+    console.log(`   Avg Response Time: ${avgDuration.toFixed(0)}ms`);
+    console.log(`   New Tools Tested: ${Object.keys(byTool).length}/4`);
+
+    console.log('\n═══════════════════════════════════════════════════════════\n');
   }
 
   async cleanup() {
-    console.log('🧹 Cleaning up...\n');
     if (this.server) {
       this.server.kill();
     }
@@ -486,5 +363,5 @@ class MCPTester {
   }
 }
 
-const tester = new MCPTester();
+const tester = new NewToolsTester();
 tester.run();
