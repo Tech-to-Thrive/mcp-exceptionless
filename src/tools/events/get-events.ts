@@ -3,6 +3,7 @@ import { ExceptionlessClient } from '../../api/client.js';
 import { ENDPOINTS } from '../../api/endpoints.js';
 
 const GetEventsSchema = z.object({
+  project_id: z.string().optional().describe('Project ID to filter events (overrides EXCEPTIONLESS_PROJECT_ID if set)'),
   filter: z.string().optional().describe('Filter (e.g. type:error, tag:production)'),
   sort: z.string().optional().describe('Sort order (e.g. -date)'),
   time: z.string().optional().describe('Time range (e.g. last 7 days)'),
@@ -20,12 +21,16 @@ export const getEventsTool = {
   inputSchema: GetEventsSchema,
   handler: async (params: z.infer<typeof GetEventsSchema>, client: ExceptionlessClient) => {
     try {
-      // Use project-scoped endpoint if projectId is configured
-      const endpoint = client.projectId
-        ? ENDPOINTS.PROJECT_EVENTS(client.projectId)
+      // Priority: params.project_id > client.projectId > org-wide
+      const projectId = params.project_id || client.projectId;
+      const endpoint = projectId
+        ? ENDPOINTS.PROJECT_EVENTS(projectId)
         : ENDPOINTS.EVENTS;
 
-      const result = await client.get(endpoint, params);
+      // Remove project_id from params before sending to API
+      const { project_id, ...apiParams } = params;
+
+      const result = await client.get(endpoint, apiParams);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

@@ -9,6 +9,7 @@ export const ENDPOINTS = {
 
   // Events - Project level
   PROJECT_EVENTS: (projectId: string) => `/projects/${projectId}/events`,
+  PROJECT_EVENT_BY_ID: (projectId: string, id: string) => `/projects/${projectId}/events/${id}`,
   PROJECT_EVENT_BY_REF: (projectId: string, refId: string) =>
     `/projects/${projectId}/events/by-ref/${refId}`,
   PROJECT_EVENT_COUNT: (projectId: string) => `/projects/${projectId}/events/count`,
@@ -23,6 +24,8 @@ export const ENDPOINTS = {
 
   // Stacks - Project level
   PROJECT_STACKS: (projectId: string) => `/projects/${projectId}/stacks`,
+  PROJECT_STACK_BY_ID: (projectId: string, id: string) => `/projects/${projectId}/stacks/${id}`,
+  PROJECT_STACK_EVENTS: (projectId: string, stackId: string) => `/projects/${projectId}/stacks/${stackId}/events`,
 
   // Projects
   PROJECTS: '/projects',

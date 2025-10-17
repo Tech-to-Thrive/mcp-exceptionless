@@ -3,7 +3,8 @@ import { ExceptionlessClient } from '../../api/client.js';
 import { ENDPOINTS } from '../../api/endpoints.js';
 
 const GetEventByReferenceSchema = z.object({
-  reference_id: z.string().min(1).describe('External reference ID')
+  reference_id: z.string().min(1).describe('External reference ID'),
+  project_id: z.string().optional().describe('Project ID to scope query (overrides EXCEPTIONLESS_PROJECT_ID if set)')
 });
 
 export const getEventByReferenceTool = {
@@ -12,8 +13,10 @@ export const getEventByReferenceTool = {
   inputSchema: GetEventByReferenceSchema,
   handler: async (params: z.infer<typeof GetEventByReferenceSchema>, client: ExceptionlessClient) => {
     try {
-      const endpoint = client.projectId
-        ? ENDPOINTS.PROJECT_EVENT_BY_REF(client.projectId, params.reference_id)
+      // Priority: params.project_id > client.projectId > org-wide
+      const projectId = params.project_id || client.projectId;
+      const endpoint = projectId
+        ? ENDPOINTS.PROJECT_EVENT_BY_REF(projectId, params.reference_id)
         : ENDPOINTS.EVENT_BY_REF(params.reference_id);
 
       const result = await client.get(endpoint);

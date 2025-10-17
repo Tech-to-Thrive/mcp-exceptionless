@@ -3,6 +3,7 @@ import { ExceptionlessClient } from '../../api/client.js';
 import { ENDPOINTS } from '../../api/endpoints.js';
 
 const GetStacksSchema = z.object({
+  project_id: z.string().optional().describe('Project ID to filter stacks (overrides EXCEPTIONLESS_PROJECT_ID if set)'),
   filter: z.string().optional().describe('Filter (e.g. status:open, total_occurrences:>100)'),
   sort: z.string().optional().describe('Sort (e.g. -total_occurrences)'),
   time: z.string().optional(),
@@ -20,11 +21,16 @@ export const getStacksTool = {
   inputSchema: GetStacksSchema,
   handler: async (params: z.infer<typeof GetStacksSchema>, client: ExceptionlessClient) => {
     try {
-      const endpoint = client.projectId
-        ? ENDPOINTS.PROJECT_STACKS(client.projectId)
+      // Priority: params.project_id > client.projectId > org-wide
+      const projectId = params.project_id || client.projectId;
+      const endpoint = projectId
+        ? ENDPOINTS.PROJECT_STACKS(projectId)
         : ENDPOINTS.STACKS;
 
-      const result = await client.get(endpoint, params);
+      // Remove project_id from params before sending to API
+      const { project_id, ...apiParams } = params;
+
+      const result = await client.get(endpoint, apiParams);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };

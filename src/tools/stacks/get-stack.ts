@@ -3,7 +3,8 @@ import { ExceptionlessClient } from '../../api/client.js';
 import { ENDPOINTS } from '../../api/endpoints.js';
 
 const GetStackSchema = z.object({
-  id: z.string().min(1).describe('Stack ID')
+  id: z.string().min(1).describe('Stack ID'),
+  project_id: z.string().optional().describe('Project ID to scope query (overrides EXCEPTIONLESS_PROJECT_ID if set)')
 });
 
 export const getStackTool = {
@@ -12,7 +13,13 @@ export const getStackTool = {
   inputSchema: GetStackSchema,
   handler: async (params: z.infer<typeof GetStackSchema>, client: ExceptionlessClient) => {
     try {
-      const result = await client.get(ENDPOINTS.STACK_BY_ID(params.id));
+      // Priority: params.project_id > client.projectId > org-wide
+      const projectId = params.project_id || client.projectId;
+      const endpoint = projectId
+        ? ENDPOINTS.PROJECT_STACK_BY_ID(projectId, params.id)
+        : ENDPOINTS.STACK_BY_ID(params.id);
+
+      const result = await client.get(endpoint);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result) }]
       };
