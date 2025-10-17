@@ -16,6 +16,9 @@ build/
 .env.local
 .env.*.local
 
+# Claude Code configuration (contains API keys)
+.claude.json
+
 # IDE and editor files
 .vscode/
 .idea/
