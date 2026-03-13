@@ -102,7 +102,7 @@ Then add to `.claude.json`:
 {
   "EXCEPTIONLESS_API_KEY": "your-api-key",
   "EXCEPTIONLESS_PROJECT_ID": "project-id-to-restrict-access",
-  "EXCEPTIONLESS_API_URL": "https://api.exceptionless.io",
+  "EXCEPTIONLESS_API_URL": "https://api.exceptionless.com",
   "EXCEPTIONLESS_TIMEOUT": "30000",
   "EXCEPTIONLESS_DEBUG": "false"
 }
@@ -115,14 +115,14 @@ Then add to `.claude.json`:
 2. Log in to your account
 3. Generate an organization-level API token via the API:
    ```bash
-   curl -X POST https://api.exceptionless.io/api/v2/auth/login \
+   curl -X POST https://api.exceptionless.com/api/v2/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email":"your@email.com","password":"yourpassword"}'
    ```
 4. Use the returned token as `EXCEPTIONLESS_API_KEY`
 
 **For Project-Specific Access**:
-1. Go to https://app.exceptionless.io/project/list
+1. Go to https://app.exceptionless.com/project/list
 2. Select your project
 3. Click "API Keys"
 4. Copy your project API key
@@ -365,7 +365,7 @@ Apache 2.0 - See [LICENSE](LICENSE) for details.
 ## Links
 
 - [Exceptionless Website](https://exceptionless.com/)
-- [Exceptionless API Docs](https://api.exceptionless.io/docs/index.html)
+- [Exceptionless API Docs](https://api.exceptionless.com/docs/index.html)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 - [GitHub Repository](https://github.com/Tech-to-Thrive/mcp-exceptionless)
 

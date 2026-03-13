@@ -48,7 +48,7 @@ export function formatApiError(error: AxiosError): McpError {
     return {
       code: 'AUTH_INVALID_KEY',
       message: 'Authentication failed: Invalid API key',
-      suggestion: 'Check your EXCEPTIONLESS_API_KEY. Generate a new key at https://app.exceptionless.io/project/list'
+      suggestion: 'Check your EXCEPTIONLESS_API_KEY. Generate a new key at https://app.exceptionless.com/project/list'
     };
   }
 
@@ -72,7 +72,7 @@ export function formatApiError(error: AxiosError): McpError {
     return {
       code: 'ORG_SUSPENDED',
       message: 'Organization suspended',
-      suggestion: 'Check your organization billing status at https://app.exceptionless.io/account/manage'
+      suggestion: 'Check your organization billing status at https://app.exceptionless.com/account/manage'
     };
   }
 
